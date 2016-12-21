@@ -1,6 +1,7 @@
 document.body.onload = init;
 
 var COLOR_CHANGE_INTERVAL_MS = 1000;
+var MAX_LINES = 500 * 4 * (7);
 
 var vec2 = window.vec2;
 var vec4 = window.vec4;
@@ -21,6 +22,7 @@ var oldMouseX = -1;
 var oldMouseY = -1;
 var target = vec2.create();
 var resolutionMatrix = vec2.create();
+var lines = [];
 var vertices = new Float32Array(numDots * 4);
 
 function init() {
@@ -53,9 +55,10 @@ function init() {
   //gl.depthFunc(gl.LEQUAL);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  //requestAnimationFrame(tick);
-  canvas.addEventListener('mousemove', drawScene);
-  canvas.addEventListener('touchmove', drawScene);
+  bufferDots();
+  requestAnimationFrame(tick);
+  //canvas.addEventListener('mousemove', drawScene);
+  //canvas.addEventListener('touchmove', drawScene);
 }
 
 function tick() {
@@ -64,20 +67,11 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-function gameTick() {
-  var targetX = mouseX - boundingClientRect.left;
-  var targetY = canvas.height - (mouseY - boundingClientRect.top);
-  vec2.set(target, targetX, targetY);
-  for (var i = 0, len = dots.length; i < len; i++) {
-    if (mousePressed) {
-      dots[i].accelToward(target);
-    }
-    dots[i].moveTick();
-  }
-}
-
 function initWebGL(canvas) {
   var options = {
+    alpha: false,
+    antialias: false,
+    depth: false,
     preserveDrawingBuffer: true
   };
   gl = null;
@@ -102,51 +96,30 @@ function initShaders() {
   gl.useProgram(shaderProgram);
   shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'a_Position');
   gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-  shaderProgram.resolutionUniform = gl.getUniformLocation(shaderProgram, 'u_Resolution');
-  shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, 'u_Color');
+  shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'a_Color');
+  gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 }
 
 function initBuffers() {
   dotArrayBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, dotArrayBuffer);
-  dotArrayBuffer.itemSize = 2;
-  dotArrayBuffer.numItems = numDots * 2;
 }
 
 function bufferDots() {
-  vertices[0] = oldMouseX;
-  vertices[1] = oldMouseY;
-  vertices[2] = mouseX;
-  vertices[3] = mouseY;
-
-  vertices[4] = canvas.width - oldMouseX;
-  vertices[5] = oldMouseY;
-  vertices[6] = canvas.width - mouseX;
-  vertices[7] = mouseY;
-
-  vertices[8] = canvas.width - oldMouseX;
-  vertices[9] = canvas.height - oldMouseY;
-  vertices[10] = canvas.width - mouseX;
-  vertices[11] = canvas.height - mouseY;
-
-  vertices[12] = oldMouseX;
-  vertices[13] = canvas.height - oldMouseY;
-  vertices[14] = mouseX;
-  vertices[15] = canvas.height - mouseY;
+  vertices = Float32Array.from(lines);
+  gl.bindBuffer(gl.ARRAY_BUFFER, dotArrayBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
 }
 
 function drawScene() {
-  if(mousePressed && oldMouseX >= 0 && oldMouseY >= 0) {
-    bufferDots();
-
-    //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.uniform4fv(shaderProgram.colorUniform, color);
-
+  bufferDots();
+  if(lines.length) {
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.bindBuffer(gl.ARRAY_BUFFER, dotArrayBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, dotArrayBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 2, gl.FLOAT, false, 20, 0);
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 3, gl.FLOAT, false, 20, 8);
 
-    gl.drawArrays(gl.LINES, 0, dotArrayBuffer.numItems);
+    gl.drawArrays(gl.LINES, 0, lines.length / 5);
   }
 }
 
@@ -155,7 +128,34 @@ function randomizeColor() {
   var g = Math.random() * .9 + .1;
   var b = Math.random() * .9 + .1;
   vec4.set(color, r, g, b, 1.0);
-};
+}
+
+function addLines(startX, startY, endX, endY) {
+  startX = startX / canvas.width;
+  startY = startY / canvas.height;
+  endX = endX / canvas.width;
+  endY = endY / canvas.height;
+  lines.push(startX, startY,
+             color[0], color[1], color[2],
+             endX, endY,
+             color[0], color[1], color[2],
+             1-startX, startY,
+             color[0], color[1], color[2],
+             1-endX, endY,
+             color[0], color[1], color[2],
+             1-startX, 1-startY,
+             color[0], color[1], color[2],
+             1-endX, 1-endY,
+             color[0], color[1], color[2],
+             startX, 1-startY,
+             color[0], color[1], color[2],
+             endX, 1-endY,
+             color[0], color[1], color[2]
+  );
+  if(lines.length > MAX_LINES) {
+    lines.splice(0, lines.length - MAX_LINES);
+  }
+}
 
 function getShader(gl, scriptId) {
   var scriptElement = document.getElementById(scriptId);
@@ -200,7 +200,6 @@ function resizeCanvas() {
   }
   gl.viewport(0, 0, canvas.width, canvas.height);
   vec2.set(resolutionMatrix, canvas.width, canvas.height);
-  gl.uniform2fv(shaderProgram.resolutionUniform, resolutionMatrix);
   boundingClientRect = canvas.getBoundingClientRect();
   gl.clear(gl.COLOR_BUFFER_BIT);
 }
@@ -208,7 +207,8 @@ function resizeCanvas() {
 function startClick(e) {
   e.preventDefault();
   mousePressed = true;
-  moveTarget(e.clientX, e.clientY);
+  mouseX = e.clientX;
+  mouseY = e.clientY;
   randomizeColor();
 }
 
@@ -218,7 +218,8 @@ function startTouch(e) {
     randomizeColor();
     touchIdentifier = e.touches[0].identifier;
     mousePressed = true;
-    moveTarget(e.touches[0].pageX, e.touches[0].pageY);
+    mouseX = e.touches[0].pageX;
+    mouseY = e.touches[0].pageY;
   }
 }
 
@@ -255,8 +256,11 @@ function endTouch(e) {
 }
 
 function moveTarget(x, y) {
-  oldMouseX = mouseX;
-  oldMouseY = mouseY;
-  mouseX = x;
-  mouseY = y;
+  if(mousePressed) {
+    oldMouseX = mouseX;
+    oldMouseY = mouseY;
+    mouseX = x;
+    mouseY = y;
+    addLines(oldMouseX, oldMouseY, mouseX, mouseY);
+  }
 }
