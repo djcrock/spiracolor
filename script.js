@@ -50,9 +50,9 @@ function init() {
 
   gl.lineWidth(dotSize);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  gl.enable(gl.DEPTH_TEST);
-  gl.depthFunc(gl.LEQUAL);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  //gl.enable(gl.DEPTH_TEST);
+  //gl.depthFunc(gl.LEQUAL);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
   //requestAnimationFrame(tick);
   canvas.addEventListener('mousemove', drawScene);
@@ -203,7 +203,7 @@ function resizeCanvas() {
   vec2.set(resolutionMatrix, canvas.width, canvas.height);
   gl.uniform2fv(shaderProgram.resolutionUniform, resolutionMatrix);
   boundingClientRect = canvas.getBoundingClientRect();
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
 function startClick(e) {
