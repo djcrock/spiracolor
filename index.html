@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Spiracolor</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <canvas id="swarm-canvas"></canvas>
+    <script src="gl-matrix.js" type="text/javascript"></script>
+    <script src="script.js" type="text/javascript"></script>
+    <script id="shader-frag" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform vec4 u_Color;
+
+      void main(void) {
+        vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+        if (dot(cxy, cxy) > 1.0) {
+          discard;
+        }
+        gl_FragColor = u_Color;
+      }
+    </script>
+    <script id="shader-vert" type="x-shader/x-vertex">
+      attribute vec2 a_Position;
+
+      uniform vec2 u_Resolution;
+      uniform float u_PointSize;
+
+      void main(void) {
+        vec2 zeroToOne = a_Position / u_Resolution;
+        vec2 zeroToTwo = zeroToOne * 2.0;
+        vec2 clipSpace = zeroToTwo - 1.0;
+        gl_PointSize = u_PointSize;
+        gl_Position = vec4(clipSpace, 0, 1);
+      }
+    </script>
+  </body>
+</html>
