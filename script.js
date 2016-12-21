@@ -1,6 +1,6 @@
 document.body.onload = init;
 
-var COLOR_CHANGE_INTERVAL_MS = 500;
+var COLOR_CHANGE_INTERVAL_MS = 1000;
 
 var vec2 = window.vec2;
 var vec4 = window.vec4;
