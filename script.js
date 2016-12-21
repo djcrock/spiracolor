@@ -31,7 +31,6 @@ function init() {
   }
 
   randomizeColor();
-  setInterval(randomizeColor, COLOR_CHANGE_INTERVAL_MS);
 
   canvas.addEventListener('mousedown', startClick);
   canvas.addEventListener('touchstart', startTouch);
@@ -210,11 +209,13 @@ function startClick(e) {
   e.preventDefault();
   mousePressed = true;
   moveTarget(e.clientX, e.clientY);
+  randomizeColor();
 }
 
 function startTouch(e) {
   e.preventDefault();
   if (!touchIdentifier) {
+    randomizeColor();
     touchIdentifier = e.touches[0].identifier;
     mousePressed = true;
     moveTarget(e.touches[0].pageX, e.touches[0].pageY);
