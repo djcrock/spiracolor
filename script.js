@@ -17,9 +17,11 @@ var mousePressed = false;
 var touchIdentifier = null;
 var mouseX = 0;
 var mouseY = 0;
+var oldMouseX = -1;
+var oldMouseY = -1;
 var target = vec2.create();
 var resolutionMatrix = vec2.create();
-var vertices = new Float32Array(numDots * 2);
+var vertices = new Float32Array(numDots * 4);
 
 function init() {
   canvas = document.getElementById('swarm-canvas');
@@ -46,6 +48,7 @@ function init() {
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
+  gl.lineWidth(dotSize);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -101,7 +104,6 @@ function initShaders() {
   shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'a_Position');
   gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
   shaderProgram.resolutionUniform = gl.getUniformLocation(shaderProgram, 'u_Resolution');
-  shaderProgram.pointSizeUniform = gl.getUniformLocation(shaderProgram, 'u_PointSize');
   shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, 'u_Color');
 }
 
@@ -109,36 +111,43 @@ function initBuffers() {
   dotArrayBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, dotArrayBuffer);
   dotArrayBuffer.itemSize = 2;
-  dotArrayBuffer.numItems = numDots;
+  dotArrayBuffer.numItems = numDots * 2;
 }
 
 function bufferDots() {
-  vertices[0] = mouseX;
-  vertices[1] = mouseY;
-
-  vertices[2] = canvas.width - mouseX;
+  vertices[0] = oldMouseX;
+  vertices[1] = oldMouseY;
+  vertices[2] = mouseX;
   vertices[3] = mouseY;
 
-  vertices[4] = canvas.width - mouseX;
-  vertices[5] = canvas.height - mouseY;
+  vertices[4] = canvas.width - oldMouseX;
+  vertices[5] = oldMouseY;
+  vertices[6] = canvas.width - mouseX;
+  vertices[7] = mouseY;
 
-  vertices[6] = mouseX;
-  vertices[7] = canvas.height - mouseY;
+  vertices[8] = canvas.width - oldMouseX;
+  vertices[9] = canvas.height - oldMouseY;
+  vertices[10] = canvas.width - mouseX;
+  vertices[11] = canvas.height - mouseY;
+
+  vertices[12] = oldMouseX;
+  vertices[13] = canvas.height - oldMouseY;
+  vertices[14] = mouseX;
+  vertices[15] = canvas.height - mouseY;
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
 }
 
 function drawScene() {
-  if(mousePressed) {
+  if(mousePressed && oldMouseX >= 0 && oldMouseY >= 0) {
     bufferDots();
 
     //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.uniform1f(shaderProgram.pointSizeUniform, dotSize);
     gl.uniform4fv(shaderProgram.colorUniform, color);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, dotArrayBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, dotArrayBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    gl.drawArrays(gl.POINTS, 0, dotArrayBuffer.numItems);
+    gl.drawArrays(gl.LINES, 0, dotArrayBuffer.numItems);
   }
 }
 
@@ -225,6 +234,8 @@ function moveTouch(e) {
 function endClick(e) {
   e.preventDefault();
   mousePressed = false;
+  oldMouseX = -1;
+  oldMouseY = -1;
 }
 
 function endTouch(e) {
@@ -238,9 +249,13 @@ function endTouch(e) {
   // The original touch was not found.
   mousePressed = false;
   touchIdentifier = null;
+  oldMouseX = -1;
+  oldMouseY = -1;
 }
 
 function moveTarget(x, y) {
+  oldMouseX = mouseX;
+  oldMouseY = mouseY;
   mouseX = x;
   mouseY = y;
 }
