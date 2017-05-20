@@ -1,6 +1,5 @@
 document.body.onload = init;
 
-var COLOR_CHANGE_INTERVAL_MS = 1000;
 var MAX_LINES = 500 * 4 * (7);
 
 var vec2 = window.vec2;
@@ -51,18 +50,13 @@ function init() {
 
   gl.lineWidth(dotSize);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  //gl.enable(gl.DEPTH_TEST);
-  //gl.depthFunc(gl.LEQUAL);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   bufferDots();
   requestAnimationFrame(tick);
-  //canvas.addEventListener('mousemove', drawScene);
-  //canvas.addEventListener('touchmove', drawScene);
 }
 
 function tick() {
-  //gameTick();
   drawScene();
   requestAnimationFrame(tick);
 }
